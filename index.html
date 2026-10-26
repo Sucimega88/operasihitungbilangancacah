@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Petualangan Angka 100.000 - Game Sensor Matematika Kelas 6</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Fredoka & Nunito for child-friendly legible gaming UI -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Tone.js for Web Audio Sound Effects -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+
+    <style>
+        :root {
+            --font-heading: 'Fredoka', sans-serif;
+            --font-body: 'Nunito', sans-serif;
+        }
+        body {
+            font-family: var(--font-body);
+            overflow-x: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #311042 100%);
+            color: #ffffff;
+        }
+        h1, h2, h3, .font-game {
+            font-family: var(--font-heading);
+        }
+        /* Custom Bubble Game Buttons */
+        .btn-game {
+            transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 6px 0 rgba(0,0,0,0.35), 0 10px 20px rgba(0,0,0,0.25);
+            position: relative;
+            top: 0;
+        }
+        .btn-game:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 8px 0 rgba(0,0,0,0.35), 0 14px 24px rgba(0,0,0,0.3);
+        }
+        .btn-game:active {
+            top: 5px;
+            box-shadow: 0 2px 0 rgba(0,0,0,0.35), 0 4px 8px rgba(0,0,0,0.2);
+            transform: scale(0.98);
+        }
+        /* Floating Animation */
+        @keyframes floatSlow {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        .animate-float {
+            animation: floatSlow 3.5s ease-in-out infinite;
+        }
+        /* Pulse Glow for Active Targets */
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 15px rgba(56, 189, 248, 0.4), inset 0 0 15px rgba(56, 189, 248, 0.2); }
+            50% { box-shadow: 0 0 30px rgba(56, 189, 248, 0.8), inset 0 0 25px rgba(56, 189, 248, 0.4); }
+        }
+        .target-bubble {
+            transition: transform 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+            animation: pulseGlow 2.5s infinite;
+        }
+        .target-bubble.motion-active {
+            transform: scale(1.06);
+            border-color: #facc15 !important;
+            background: rgba(250, 204, 21, 0.28) !important;
+        }
+        /* Mirror Video Canvas */
+        .mirror-canvas {
+            transform: scaleX(-1);
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #6366f1;
+            border-radius: 8px;
+        }
+        /* Confetti particle */
+        .particle {
+            position: absolute;
+            pointer-events: none;
+            border-radius: 50%;
+            z-index: 60;
+        }
+    </style>
+</head>
+<body class="min-h-screen w-full flex flex-col justify-between relative overflow-x-hidden">
+
+    <!-- Background Decorative Blobs -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div class="absolute -top-24 -left-24 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl"></div>
+        <div class="absolute top-1/3 -right-24 w-96 h-96 bg-fuchsia-600/20 rounded-full blur-3xl"></div>
+        <div class="absolute -bottom-24 left-1/3 w-96 h-96 bg-cyan-500/20 rounded-full blur-3xl"></div>
+    </div>
+
+    <!-- Hidden Video & Optical Flow Offscreen Canvas for Motion Sensing -->
+    <video id="webcam-video" autoplay playsinline muted class="hidden"></video>
+    <canvas id="motion-proc-canvas" width="160" height="120" class="hidden"></canvas>
+
+    <!-- ========================================== -->
+    <!-- 1. HALAMAN PEMBUKA / SPLASH SCREEN         -->
+    <!-- ========================================== -->
+    <main id="screen-splash" class="relative z-10 flex-1 flex flex-col items-center justify-center p-4 sm:p-6 md:p-10 max-w-6xl mx-auto w-full">
+        
+        <div class="w-full bg-slate-900/80 backdrop-blur-xl border-2 border-indigo-500/40 rounded-3xl p-6 sm:p-10 shadow-2xl flex flex-col items-center text-center relative overflow-hidden">
+            
+            <!-- Top Bar: Official Logos (PGRI & Pemkab Wonogiri) -->
+            <div class="w-full flex flex-row items-center justify-between gap-4 mb-6 sm:mb-8 px-2 sm:px-6">
+                <!-- Logo PGRI -->
+                <div class="flex flex-col items-center group">
+                    <div class="w-20 h-20 sm:w-28 sm:h-28 rounded-full bg-white p-1.5 shadow-lg shadow-red-500/20 flex items-center justify-center transition-transform group-hover:scale-105">
+                        <img src="Logo resmi pgri.jpg" alt="Logo Resmi PGRI" class="w-full h-full object-contain rounded-full" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                        <!-- High-Precision Official PGRI SVG Emblem Fallback -->
+                        <svg viewBox="0 0 200 200" class="w-full h-full hidden">
+                            <circle cx="100" cy="100" r="96" fill="#dc2626" stroke="#ffffff" stroke-width="4"/>
+                            <circle cx="100" cy="100" r="90" fill="none" stroke="#ffffff" stroke-width="2.5"/>
+                            <circle cx="100" cy="100" r="64" fill="#15803d" stroke="#ffffff" stroke-width="3"/>
+                            <!-- Side Pillars -->
+                            <path d="M55,75 C55,70 68,70 68,75 L68,132 L55,132 Z" fill="#ffffff" stroke="#111" stroke-width="1.5"/>
+                            <line x1="59" y1="76" x2="59" y2="128" stroke="#111" stroke-width="1"/>
+                            <line x1="64" y1="76" x2="64" y2="128" stroke="#111" stroke-width="1"/>
+                            <path d="M132,75 C132,70 145,70 145,75 L145,132 L132,132 Z" fill="#ffffff" stroke="#111" stroke-width="1.5"/>
+                            <line x1="136" y1="76" x2="136" y2="128" stroke="#111" stroke-width="1"/>
+                            <line x1="141" y1="76" x2="141" y2="128" stroke="#111" stroke-width="1"/>
+                            <!-- Open Books -->
+                            <rect x="72" y="112" width="56" height="9" rx="3" fill="#ffffff" stroke="#111" stroke-width="1.5"/>
+                            <rect x="72" y="123" width="56" height="9" rx="3" fill="#ffffff" stroke="#111" stroke-width="1.5"/>
+                            <line x1="76" y1="116" x2="124" y2="116" stroke="#111" stroke-width="1"/>
+                            <line x1="76" y1="127" x2="124" y2="127" stroke="#111" stroke-width="1"/>
+                            <!-- Torch Cone & Rings -->
+                            <polygon points="88,82 112,82 105,148 95,148" fill="#facc15" stroke="#ffffff" stroke-width="2"/>
+                            <ellipse cx="100" cy="76" rx="22" ry="6" fill="#facc15" stroke="#ffffff" stroke-width="2"/>
+                            <ellipse cx="100" cy="66" rx="17" ry="5" fill="#facc15" stroke="#ffffff" stroke-width="2"/>
+                            <!-- Torch Flame -->
+                            <path d="M83,62 C78,45 90,38 92,28 C96,15 104,15 108,28 C112,38 122,45 117,62 Z" fill="#dc2626" stroke="#ffffff" stroke-width="2.5"/>
+                            <!-- Text Ring Paths -->
+                            <defs>
+                                <path id="pgriTop" d="M 24,100 A 76,76 0 1,1 176,100" />
+                                <path id="pgriBot" d="M 176,100 A 76,76 0 1,1 24,100" />
+                            </defs>
+                            <text fill="#ffffff" font-size="13.5" font-weight="900" font-family="Arial, sans-serif" letter-spacing="1.2">
+                                <textPath href="#pgriTop" startOffset="50%" text-anchor="middle">PERSATUAN GURU REPUBLIK</textPath>
+                            </text>
+                            <text fill="#ffffff" font-size="14" font-weight="900" font-family="Arial, sans-serif" letter-spacing="2">
+                                <textPath href="#pgriBot" startOffset="50%" text-anchor="middle">INDONESIA • PGRI •</textPath>
+                            </text>
+                        </svg>
+                    </div>
+                    <span class="text-xs sm:text-sm font-bold text-indigo-200 mt-2 tracking-wide">PGRI RESMI</span>
+                </div>
+
+                <!-- Badge Kurikulum Merdeka Fase C -->
+                <div class="hidden md:flex items-center gap-2 bg-indigo-950/90 border border-indigo-400/40 px-5 py-2 rounded-full shadow-inner">
+                    <span class="w-3 h-3 rounded-full bg-emerald-400 animate-ping"></span>
+                    <span class="text-xs sm:text-sm font-extrabold tracking-wider uppercase text-indigo-200">Matematika Kelas 6 SD • Fase C</span>
+                </div>
+
+                <!-- Logo Pemkab Wonogiri -->
+                <div class="flex flex-col items-center group">
+                    <div class="w-20 h-20 sm:w-28 sm:h-28 rounded-2xl bg-white p-1.5 shadow-lg shadow-yellow-500/20 flex items-center justify-center transition-transform group-hover:scale-105">
+                        <img src="Logo Pemkab Wonogiri.jpeg" alt="Logo Pemkab Wonogiri" class="w-full h-full object-contain rounded-xl" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                        <!-- High-Precision Official Pemkab Wonogiri SVG Shield Fallback -->
+                        <svg viewBox="0 0 200 220" class="w-full h-full hidden">
+                            <!-- Yellow Shield Base -->
+                            <path d="M20,12 L180,12 L180,115 C180,165 100,208 100,208 C100,208 20,165 20,115 Z" fill="#facc15" stroke="#111111" stroke-width="6"/>
+                            <path d="M27,19 L173,19 L173,113 C173,158 100,199 100,199 C100,199 27,158 27,113 Z" fill="none" stroke="#ffffff" stroke-width="3"/>
+                            <!-- Red & White Pentagon -->
+                            <polygon points="100,32 48,72 68,132 100,132" fill="#dc2626" stroke="#111111" stroke-width="3"/>
+                            <polygon points="100,32 152,72 132,132 100,132" fill="#ffffff" stroke="#111111" stroke-width="3"/>
+                            <!-- Green Circle & Mountain inside -->
+                            <circle cx="100" cy="92" r="28" fill="#15803d" stroke="#facc15" stroke-width="3" stroke-dasharray="6,3"/>
+                            <polygon points="84,96 100,76 116,96" fill="#ffffff" stroke="#111" stroke-width="1.5"/>
+                            <!-- Golden Star -->
+                            <polygon points="100,38 104,49 116,49 106,56 110,67 100,60 90,67 94,56 84,49 96,49" fill="#facc15" stroke="#111111" stroke-width="1.5"/>
+                            <!-- Bottom Ribbon -->
+                            <path d="M42,148 Q100,135 158,148 L152,165 Q100,152 48,165 Z" fill="#dc2626" stroke="#111111" stroke-width="2.5"/>
+                            <text x="100" y="159" font-size="13" font-weight="900" font-family="Arial, sans-serif" fill="#111111" text-anchor="middle" letter-spacing="2">WONOGIRI</text>
+                            <path d="M52,166 Q100,155 148,166 L144,178 Q100,167 56,178 Z" fill="#ffffff" stroke="#111111" stroke-width="1.8"/>
+                            <text x="100" y="174" font-size="6.5" font-weight="bold" font-family="Arial, sans-serif" fill="#111111" text-anchor="middle">SABDA SAKTI NUGRAHANING PRAJA</text>
+                        </svg>
+                    </div>
+                    <span class="text-xs sm:text-sm font-bold text-amber-200 mt-2 tracking-wide">PEMKAB WONOGIRI</span>
+                </div>
+            </div>
+
+            <!-- Main Game Title & Subtitle -->
+            <div class="my-2 sm:my-4 animate-float">
+                <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-cyan-500/20 to-indigo-500/20 border border-cyan-400/40 text-cyan-300 text-xs sm:text-sm font-bold mb-3">
+                    <i class="fa-solid fa-hand-sparkles text-amber-400"></i> GAME INTERAKTIF SENSOR GERAK & SENTUH
+                </div>
+                <h1 class="text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-200 to-cyan-300 drop-shadow-md leading-tight">
+                    KSATRIA ANGKA 100.000
+                </h1>
+                <p class="mt-2 sm:mt-3 text-base sm:text-xl text-indigo-200 font-semibold max-w-2xl mx-auto">
+                    Petualangan Tangkap Jawaban dengan Gerakan Tanganmu! <br class="hidden sm:inline">
+                    <span class="text-amber-300 font-bold">(Penjumlahan, Pengurangan, Perkalian & Pembagian Bilangan Cacah)</span>
+                </p>
+            </div>
+
+            <!-- Creator Attribution Card: Yuli Sri Untari & Cabang PGRI Sidoharjo -->
+            <div class="mt-4 mb-8 w-full max-w-xl bg-gradient-to-r from-indigo-950/90 via-slate-900/95 to-indigo-950/90 border-2 border-amber-400/50 rounded-2xl p-4 sm:p-5 shadow-xl relative">
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6">
+                    <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-slate-950 text-2xl shadow-md shrink-0">
+                        <i class="fa-solid fa-chalkboard-user"></i>
+                    </div>
+                    <div class="text-center sm:text-left">
+                        <div class="text-xs uppercase tracking-widest text-amber-300/90 font-bold">Karya Inovasi Pembelajaran</div>
+                        <div class="text-xl sm:text-2xl font-extrabold text-white tracking-wide mt-0.5">Yuli Sri Untari</div>
+                        <div class="text-sm sm:text-base font-bold text-cyan-300 flex items-center justify-center sm:justify-start gap-1.5 mt-0.5">
+                            <i class="fa-solid fa-building-columns text-xs"></i> Cabang PGRI Sidoharjo • Kabupaten Wonogiri
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons: Mulai & Petunjuk -->
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 w-full max-w-lg">
+                <button onclick="navigateTo('screen-education', true)" class="btn-game w-full sm:w-1/2 py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 border-2 border-emerald-300 text-white font-game text-xl sm:text-2xl tracking-wide flex items-center justify-center gap-3">
+                    <i class="fa-solid fa-play"></i> MULAI / START
+                </button>
+                <button onclick="navigateTo('screen-education', false)" class="btn-game w-full sm:w-1/2 py-4 px-6 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 border-2 border-amber-300 text-slate-950 font-game text-xl sm:text-2xl tracking-wide flex items-center justify-center gap-3">
+                    <i class="fa-solid fa-book-open"></i> PETUNJUK
+                </button>
+            </div>
+
+            <!-- Device Compatibility Strip -->
+            <div class="mt-8 pt-4 border-t border-indigo-500/20 w-full flex flex-wrap items-center justify-center gap-4 sm:gap-8 text-xs sm:text-sm text-indigo-300/80">
+                <span class="flex items-center gap-1.5"><i class="fa-solid fa-chalkboard text-cyan-400"></i> Papan Interaktif Digital (IFP)</span>
+                <span class="flex items-center gap-1.5"><i class="fa-solid fa-tablet-screen-button text-cyan-400"></i> iPad & Tablet</span>
+                <span class="flex items-center gap-1.5"><i class="fa-solid fa-laptop text-cyan-400"></i> Laptop / PC Webcam</span>
+                <span class="flex items-center gap-1.5"><i class="fa-solid fa-mobile-screen text-cyan-400"></i> Smartphone</span>
+            </div>
+        </div>
+    </main>
+
+    <!-- ========================================== -->
+    <!-- 2. HALAMAN EDUKASI & PENGATURAN            -->
+    <!-- ========================================== -->
+    <main id="screen-education" class="hidden relative z-10 flex-1 flex flex-col items-center justify-center p-4 sm:p-6 max-w-6xl mx-auto w-full">
+        <div class="w-full bg-slate-900/85 backdrop-blur-xl border-2 border-indigo-500/40 rounded-3xl p-5 sm:p-8 shadow-2xl">
+            
+            <!-- Header Navigation -->
+            <div class="flex items-center justify-between border-b border-indigo-500/30 pb-4 mb-6">
+                <button onclick="navigateTo('screen-splash')" class="btn-game px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-sm sm:text-base font-bold flex items-center gap-2">
+                    <i class="fa-solid fa-arrow-left"></i> Kembali
+                </button>
+                <h2 class="text-xl sm:text-3xl font-game text-amber-300 text-center">
+                    <i class="fa-solid fa-graduation-cap mr-2"></i>Edukasi & Pengaturan Permainan
+                </h2>
+                <div class="w-20 hidden sm:block"></div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                
+                <!-- Left Column: Tujuan Pembelajaran & Petunjuk Sensor -->
+                <div class="space-y-5">
+                    <!-- CP & Tujuan Pembelajaran -->
+                    <div class="bg-indigo-950/70 border border-indigo-400/40 rounded-2xl p-5">
+                        <div class="flex items-center gap-3 mb-3">
+                            <div class="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-400 text-cyan-300 flex items-center justify-center text-lg">
+                                <i class="fa-solid fa-bullseye"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-game text-lg sm:text-xl text-cyan-300">Capaian & Tujuan Pembelajaran</h3>
+                                <p class="text-xs text-indigo-300">Mata Pelajaran Matematika Kelas 6 SD (Fase C)</p>
+                            </div>
+                        </div>
+                        <ul class="space-y-2 text-xs sm:text-sm text-indigo-100 leading-relaxed">
+                            <li class="flex items-start gap-2">
+                                <i class="fa-solid fa-circle-check text-emerald-400 mt-1"></i>
+                                <span><strong>Capaian Pembelajaran (CP):</strong> Peserta didik dapat melakukan operasi <strong>penjumlahan, pengurangan, perkalian, dan pembagian</strong> bilangan cacah sampai <strong>100.000</strong>.</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <i class="fa-solid fa-circle-check text-emerald-400 mt-1"></i>
+                                <span><strong>Target Capaian:</strong> Meningkatkan ketepatan berhitung cepat, nalar numerasi kontekstual, dan koordinasi motorik siswa secara menyenangkan.</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Petunjuk Cara Bermain & Kontrol Sensor -->
+                    <div class="bg-slate-800/80 border border-amber-400/40 rounded-2xl p-5">
+                        <div class="flex items-center gap-3 mb-3">
+                            <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-400 text-amber-300 flex items-center justify-center text-lg">
+                                <i class="fa-solid fa-hand-paper"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-game text-lg sm:text-xl text-amber-300">Petunjuk Cara Bermain & Kontrol</h3>
+                                <p class="text-xs text-slate-300">Mendukung 2 Mode Interaksi Sekaligus</p>
+                            </div>
+                        </div>
+                        <div class="space-y-3 text-xs sm:text-sm text-slate-200">
+                            <div class="p-3 rounded-xl bg-slate-900/80 border border-cyan-500/30 flex items-start gap-3">
+                                <i class="fa-solid fa-camera text-cyan-400 text-xl mt-0.5"></i>
+                                <div>
+                                    <strong class="text-cyan-300">1. Mode Sensor Gerak Tangan (Kamera):</strong>
+                                    Lambaikan atau tahan gerakan tanganmu tepat pada gelembung jawaban di layar kamera hingga lingkaran sensor penuh (100%)!
+                                </div>
+                            </div>
+                            <div class="p-3 rounded-xl bg-slate-900/80 border border-emerald-500/30 flex items-start gap-3">
+                                <i class="fa-solid fa-hand-pointer text-emerald-400 text-xl mt-0.5"></i>
+                                <div>
+                                    <strong class="text-emerald-300">2. Mode Sentuh / Papan Interaktif / Mouse:</strong>
+                                    Bisa juga langsung menyentuh (Tap) atau Klik gelembung jawaban pada Papan Interaktif Digital, iPad, Tablet, maupun HP.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Pengaturan Mode & Kesulitan -->
+                <div class="space-y-5 flex flex-col justify-between bg-slate-800/50 border border-indigo-500/30 rounded-2xl p-5">
+                    <div class="space-y-5">
+                        <!-- Pilih Mode Sensor / Kamera -->
+                        <div>
+                            <label class="block font-game text-base sm:text-lg text-white mb-2">
+                                <i class="fa-solid fa-video text-cyan-400 mr-1.5"></i> 1. Pilih Kontrol Sensor Gerak:
+                            </label>
+                            <div class="grid grid-cols-2 gap-3">
+                                <button id="btn-sensor-on" onclick="setSensorPreference(true)" class="p-3.5 rounded-xl border-2 border-cyan-400 bg-cyan-500/20 text-white font-bold text-left transition flex items-center gap-3">
+                                    <i class="fa-solid fa-hand-sparkles text-2xl text-cyan-300"></i>
+                                    <div>
+                                        <div class="text-sm sm:text-base">Sensor Kamera + Sentuh</div>
+                                        <div class="text-[11px] text-cyan-200 font-normal">Deteksi gerakan tangan & tap</div>
+                                    </div>
+                                </button>
+                                <button id="btn-sensor-off" onclick="setSensorPreference(false)" class="p-3.5 rounded-xl border-2 border-slate-600 bg-slate-900/60 text-slate-300 font-bold text-left transition flex items-center gap-3">
+                                    <i class="fa-solid fa-touchpad-finger text-2xl text-amber-300"></i>
+                                    <div>
+                                        <div class="text-sm sm:text-base">Layar Sentuh / Mouse Saja</div>
+                                        <div class="text-[11px] text-slate-400 font-normal">Tanpa menyalakan kamera</div>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Pilih Operasi Hitung -->
+                        <div>
+                            <label class="block font-game text-base sm:text-lg text-white mb-2">
+                                <i class="fa-solid fa-calculator text-amber-400 mr-1.5"></i> 2. Pilih Mode Operasi Hitung:
+                            </label>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                                <button onclick="setOperationMode('CAMPURAN')" id="op-CAMPURAN" class="op-btn p-2.5 rounded-xl border-2 border-amber-400 bg-amber-500/20 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5">
+                                    <i class="fa-solid fa-shuffle text-amber-300"></i> Semua Operasi
+                                </button>
+                                <button onclick="setOperationMode('TAMBAH')" id="op-TAMBAH" class="op-btn p-2.5 rounded-xl border-2 border-slate-700 bg-slate-900/60 text-slate-300 font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5">
+                                    <i class="fa-solid fa-plus text-emerald-400"></i> Penjumlahan
+                                </button>
+                                <button onclick="setOperationMode('KURANG')" id="op-KURANG" class="op-btn p-2.5 rounded-xl border-2 border-slate-700 bg-slate-900/60 text-slate-300 font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5">
+                                    <i class="fa-solid fa-minus text-rose-400"></i> Pengurangan
+                                </button>
+                                <button onclick="setOperationMode('KALI')" id="op-KALI" class="op-btn p-2.5 rounded-xl border-2 border-slate-700 bg-slate-900/60 text-slate-300 font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5">
+                                    <i class="fa-solid fa-xmark text-cyan-400"></i> Perkalian
+                                </button>
+                                <button onclick="setOperationMode('BAGI')" id="op-BAGI" class="op-btn p-2.5 rounded-xl border-2 border-slate-700 bg-slate-900/60 text-slate-300 font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5">
+                                    <i class="fa-solid fa-divide text-purple-400"></i> Pembagian
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Pilih Tingkat Kesulitan -->
+                        <div>
+                            <label class="block font-game text-base sm:text-lg text-white mb-2">
+                                <i class="fa-solid fa-layer-group text-emerald-400 mr-1.5"></i> 3. Pilih Tingkat Kesulitan:
+                            </label>
+                            <div class="grid grid-cols-3 gap-2.5">
+                                <button onclick="setDifficulty('MUDAH')" id="diff-MUDAH" class="diff-btn p-3 rounded-xl border-2 border-slate-700 bg-slate-900/60 text-slate-300 font-bold text-center transition">
+                                    <div class="text-emerald-400 text-sm sm:text-base">🌟 Mudah</div>
+                                    <div class="text-[11px] opacity-80">Puluhan Ribu Dasar</div>
+                                </button>
+                                <button onclick="setDifficulty('SEDANG')" id="diff-SEDANG" class="diff-btn p-3 rounded-xl border-2 border-emerald-400 bg-emerald-500/20 text-white font-bold text-center transition">
+                                    <div class="text-amber-300 text-sm sm:text-base">🌟🌟 Sedang</div>
+                                    <div class="text-[11px] opacity-80">s.d. 100.000 Standar</div>
+                                </button>
+                                <button onclick="setDifficulty('MAHIR')" id="diff-MAHIR" class="diff-btn p-3 rounded-xl border-2 border-slate-700 bg-slate-900/60 text-slate-300 font-bold text-center transition">
+                                    <div class="text-rose-400 text-sm sm:text-base">🌟🌟🌟 Mahir</div>
+                                    <div class="text-[11px] opacity-80">Tantangan & Cerita</div>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Launch Game Button -->
+                    <button onclick="startGameSession()" class="btn-game w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 border-2 border-emerald-200 text-white font-game text-xl sm:text-2xl shadow-xl flex items-center justify-center gap-3 mt-6">
+                        <i class="fa-solid fa-rocket"></i> LUNCURKAN PERMAINAN SEKARANG!
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ========================================== -->
+    <!-- 3. HALAMAN UTAMA PERMAINAN / GAMEPLAY      -->
+    <!-- ========================================== -->
+    <main id="screen-gameplay" class="hidden relative z-10 flex-1 flex flex-col justify-between p-2 sm:p-4 max-w-7xl mx-auto w-full h-screen max-h-screen overflow-hidden">
+        
+        <!-- Top HUD: Skor, Nyawa, Timer, Soal Ke, Pause & Sound -->
+        <header class="w-full bg-slate-900/90 backdrop-blur-md border-2 border-indigo-500/40 rounded-2xl p-2.5 sm:p-3.5 shadow-lg flex flex-wrap items-center justify-between gap-2 z-20 shrink-0">
+            <!-- Left: Branding Mini & Question Progress -->
+            <div class="flex items-center gap-2 sm:gap-3">
+                <span class="px-3 py-1.5 rounded-xl bg-indigo-600 font-game text-xs sm:text-sm text-white shadow">
+                    Soal <span id="hud-q-index">1</span>/<span id="hud-q-total">10</span>
+                </span>
+                <span id="hud-sensor-badge" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-cyan-950 border border-cyan-500/40 text-cyan-300 text-xs font-bold">
+                    <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span> Sensor Aktif
+                </span>
+            </div>
+
+            <!-- Center: Score, Lives, Timer -->
+            <div class="flex items-center gap-3 sm:gap-6">
+                <!-- Skor -->
+                <div class="flex items-center gap-2 bg-slate-800/90 border border-amber-400/40 px-3 py-1.5 rounded-xl">
+                    <i class="fa-solid fa-star text-amber-400 text-base sm:text-lg"></i>
+                    <div>
+                        <div class="text-[10px] uppercase text-amber-200/80 leading-none">Skor</div>
+                        <div id="hud-score" class="font-game text-base sm:text-xl text-white leading-tight">0</div>
+                    </div>
+                </div>
+
+                <!-- Nyawa / Kesempatan -->
+                <div class="flex items-center gap-1.5 bg-slate-800/90 border border-rose-400/40 px-3 py-1.5 rounded-xl">
+                    <div id="hud-lives" class="flex items-center gap-1 text-rose-500 text-base sm:text-xl">
+                        <i class="fa-solid fa-heart"></i>
+                        <i class="fa-solid fa-heart"></i>
+                        <i class="fa-solid fa-heart"></i>
+                    </div>
+                </div>
+
+                <!-- Waktu / Timer -->
+                <div class="flex items-center gap-2 bg-slate-800/90 border border-cyan-400/40 px-3 py-1.5 rounded-xl">
+                    <i class="fa-solid fa-stopwatch text-cyan-400 text-base sm:text-lg"></i>
+                    <div>
+                        <div class="text-[10px] uppercase text-cyan-200/80 leading-none">Waktu</div>
+                        <div id="hud-timer" class="font-game text-base sm:text-xl text-white leading-tight">30d</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Sound Toggle & Pause Button -->
+            <div class="flex items-center gap-2">
+                <button onclick="toggleSound()" id="btn-sound" class="btn-game w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-slate-800 border border-indigo-400/40 text-amber-300 flex items-center justify-center text-base sm:text-lg" title="Suara On/Off">
+                    <i id="icon-sound" class="fa-solid fa-volume-high"></i>
+                </button>
+                <button onclick="togglePause()" id="btn-pause" class="btn-game px-3 sm:px-4 h-10 sm:h-11 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-game text-sm sm:text-base flex items-center gap-1.5">
+                    <i class="fa-solid fa-pause"></i> <span class="hidden sm:inline">Jeda</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Interactive Arena (Camera Mirror Feed + Question + 4 Corner Sensor Targets) -->
+        <div id="game-arena" class="relative flex-1 my-2 w-full rounded-3xl overflow-hidden border-2 border-indigo-500/50 bg-slate-950 shadow-2xl flex flex-col justify-between p-3 sm:p-6">
+            
+            <!-- Live Mirrored Webcam Feed + Motion Sparkle Overlay Canvas -->
+            <canvas id="arena-webcam-canvas" class="mirror-canvas absolute inset-0 w-full h-full object-cover opacity-55 pointer-events-none z-0"></canvas>
+
+            <!-- Top Row Answer Targets (A & B) -->
+            <div class="relative z-10 grid grid-cols-2 gap-4 sm:gap-12 w-full">
+                <!-- Option A (Top-Left) -->
+                <div id="target-0" onclick="selectAnswer(0)" onmousemove="handlePointerHover(0)" class="target-bubble cursor-pointer rounded-2xl sm:rounded-3xl bg-slate-900/85 backdrop-blur-md border-4 border-cyan-400 p-3 sm:p-5 flex flex-col items-center justify-center text-center relative overflow-hidden select-none min-h-[95px] sm:min-h-[130px]">
+                    <div class="absolute top-2 left-3 px-2.5 py-0.5 rounded-full bg-cyan-500 text-slate-950 font-game text-xs sm:text-sm font-bold">A</div>
+                    <div id="opt-text-0" class="font-game text-xl sm:text-3xl md:text-4xl text-white tracking-wide drop-shadow mt-2">24.500</div>
+                    <!-- Motion Hold Progress Bar -->
+                    <div class="w-4/5 h-2.5 bg-slate-800 rounded-full mt-2 overflow-hidden border border-cyan-500/40">
+                        <div id="opt-prog-0" class="h-full bg-gradient-to-r from-amber-400 to-emerald-400 w-0 transition-all duration-75"></div>
+                    </div>
+                    <span class="text-[10px] sm:text-xs text-cyan-200 mt-1"><i class="fa-solid fa-hand-paper mr-1"></i>Lambaikan Tangan / Sentuh</span>
+                </div>
+
+                <!-- Option B (Top-Right) -->
+                <div id="target-1" onclick="selectAnswer(1)" onmousemove="handlePointerHover(1)" class="target-bubble cursor-pointer rounded-2xl sm:rounded-3xl bg-slate-900/85 backdrop-blur-md border-4 border-fuchsia-400 p-3 sm:p-5 flex flex-col items-center justify-center text-center relative overflow-hidden select-none min-h-[95px] sm:min-h-[130px]">
+                    <div class="absolute top-2 right-3 px-2.5 py-0.5 rounded-full bg-fuchsia-400 text-slate-950 font-game text-xs sm:text-sm font-bold">B</div>
+                    <div id="opt-text-1" class="font-game text-xl sm:text-3xl md:text-4xl text-white tracking-wide drop-shadow mt-2">35.000</div>
+                    <!-- Motion Hold Progress Bar -->
+                    <div class="w-4/5 h-2.5 bg-slate-800 rounded-full mt-2 overflow-hidden border border-fuchsia-500/40">
+                        <div id="opt-prog-1" class="h-full bg-gradient-to-r from-amber-400 to-emerald-400 w-0 transition-all duration-75"></div>
+                    </div>
+                    <span class="text-[10px] sm:text-xs text-fuchsia-200 mt-1"><i class="fa-solid fa-hand-paper mr-1"></i>Lambaikan Tangan / Sentuh</span>
+                </div>
+            </div>
+
+            <!-- Center Question Banner -->
+            <div class="relative z-10 my-auto py-2 flex flex-col items-center justify-center pointer-events-none">
+                <div id="question-card" class="w-full max-w-2xl bg-gradient-to-b from-indigo-950/95 to-slate-900/95 backdrop-blur-xl border-2 border-amber-400 rounded-3xl p-4 sm:p-6 text-center shadow-2xl transform transition-all">
+                    <div id="question-badge" class="inline-block px-3 py-0.5 rounded-full bg-amber-400/20 border border-amber-400/50 text-amber-300 text-xs font-extrabold uppercase tracking-wider mb-1">
+                        Operasi Hitung Bilangan Cacah
+                    </div>
+                    <div id="question-visual" class="text-sm sm:text-base text-cyan-300 font-bold mb-1"></div>
+                    <h2 id="question-text" class="font-game text-2xl sm:text-4xl md:text-5xl text-white tracking-wide leading-snug drop-shadow">
+                        45.250 + 32.750 = ...
+                    </h2>
+                </div>
+            </div>
+
+            <!-- Bottom Row Answer Targets (C & D) -->
+            <div class="relative z-10 grid grid-cols-2 gap-4 sm:gap-12 w-full">
+                <!-- Option C (Bottom-Left) -->
+                <div id="target-2" onclick="selectAnswer(2)" onmousemove="handlePointerHover(2)" class="target-bubble cursor-pointer rounded-2xl sm:rounded-3xl bg-slate-900/85 backdrop-blur-md border-4 border-emerald-400 p-3 sm:p-5 flex flex-col items-center justify-center text-center relative overflow-hidden select-none min-h-[95px] sm:min-h-[130px]">
+                    <div class="absolute top-2 left-3 px-2.5 py-0.5 rounded-full bg-emerald-400 text-slate-950 font-game text-xs sm:text-sm font-bold">C</div>
+                    <div id="opt-text-2" class="font-game text-xl sm:text-3xl md:text-4xl text-white tracking-wide drop-shadow mt-2">78.000</div>
+                    <!-- Motion Hold Progress Bar -->
+                    <div class="w-4/5 h-2.5 bg-slate-800 rounded-full mt-2 overflow-hidden border border-emerald-500/40">
+                        <div id="opt-prog-2" class="h-full bg-gradient-to-r from-amber-400 to-emerald-400 w-0 transition-all duration-75"></div>
+                    </div>
+                    <span class="text-[10px] sm:text-xs text-emerald-200 mt-1"><i class="fa-solid fa-hand-paper mr-1"></i>Lambaikan Tangan / Sentuh</span>
+                </div>
+
+                <!-- Option D (Bottom-Right) -->
+                <div id="target-3" onclick="selectAnswer(3)" onmousemove="handlePointerHover(3)" class="target-bubble cursor-pointer rounded-2xl sm:rounded-3xl bg-slate-900/85 backdrop-blur-md border-4 border-amber-400 p-3 sm:p-5 flex flex-col items-center justify-center text-center relative overflow-hidden select-none min-h-[95px] sm:min-h-[130px]">
+                    <div class="absolute top-2 right-3 px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 font-game text-xs sm:text-sm font-bold">D</div>
+                    <div id="opt-text-3" class="font-game text-xl sm:text-3xl md:text-4xl text-white tracking-wide drop-shadow mt-2">82.500</div>
+                    <!-- Motion Hold Progress Bar -->
+                    <div class="w-4/5 h-2.5 bg-slate-800 rounded-full mt-2 overflow-hidden border border-amber-500/40">
+                        <div id="opt-prog-3" class="h-full bg-gradient-to-r from-amber-400 to-emerald-400 w-0 transition-all duration-75"></div>
+                    </div>
+                    <span class="text-[10px] sm:text-xs text-amber-200 mt-1"><i class="fa-solid fa-hand-paper mr-1"></i>Lambaikan Tangan / Sentuh</span>
+                </div>
+            </div>
+
+            <!-- Instant Visual Feedback Overlay -->
+            <div id="feedback-overlay" class="hidden absolute inset-0 z-30 bg-slate-950/80 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center">
+                <div id="feedback-icon" class="w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center text-4xl sm:text-5xl mb-3 shadow-2xl"></div>
+                <h3 id="feedback-title" class="font-game text-3xl sm:text-5xl mb-2">HEBAT! BENAR!</h3>
+                <p id="feedback-desc" class="text-base sm:text-xl text-indigo-100 max-w-xl font-bold"></p>
+            </div>
+
+            <!-- Pause Modal Overlay -->
+            <div id="pause-overlay" class="hidden absolute inset-0 z-40 bg-slate-950/90 backdrop-blur-lg flex flex-col items-center justify-center p-6 text-center">
+                <i class="fa-solid fa-circle-pause text-6xl text-amber-400 mb-4"></i>
+                <h3 class="font-game text-3xl sm:text-4xl text-white mb-2">PERMAINAN DIJEDA</h3>
+                <p class="text-indigo-200 mb-6 max-w-md">Istirahat sejenak! Klik tombol di bawah untuk melanjutkan petualangan berhitungmu.</p>
+                <div class="flex flex-col sm:flex-row gap-4 w-full max-w-md justify-center">
+                    <button onclick="togglePause()" class="btn-game py-3.5 px-6 rounded-2xl bg-emerald-500 text-white font-game text-lg flex-1">
+                        <i class="fa-solid fa-play mr-2"></i> Lanjutkan
+                    </button>
+                    <button onclick="quitToSplash()" class="btn-game py-3.5 px-6 rounded-2xl bg-rose-600 text-white font-game text-lg flex-1">
+                        <i class="fa-solid fa-house mr-2"></i> Menu Utama
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Bottom Mini Footer Attribution -->
+        <footer class="text-center text-xs text-indigo-300/80 py-1 shrink-0 flex items-center justify-between px-2">
+            <span><strong>Yuli Sri Untari</strong> • Cabang PGRI Sidoharjo</span>
+            <span>Matematika Kelas 6 SD (Fase C) • Bilangan Cacah s.d. 100.000</span>
+        </footer>
+    </main>
+
+    <!-- ========================================== -->
+    <!-- 4. HALAMAN HASIL / GAME OVER / VICTORY     -->
+    <!-- ========================================== -->
+    <main id="screen-result" class="hidden relative z-10 flex-1 flex flex-col items-center justify-center p-4 sm:p-6 max-w-5xl mx-auto w-full my-auto">
+        <div class="w-full bg-slate-900/90 backdrop-blur-xl border-2 border-indigo-500/40 rounded-3xl p-6 sm:p-8 shadow-2xl flex flex-col items-center text-center">
+            
+            <!-- Stars & Trophy Appreciation -->
+            <div id="result-stars" class="flex items-center justify-center gap-3 text-4xl sm:text-6xl text-amber-400 mb-3">
+                <i class="fa-solid fa-star animate-bounce"></i>
+                <i class="fa-solid fa-star animate-bounce" style="animation-delay: 0.15s"></i>
+                <i class="fa-solid fa-star animate-bounce" style="animation-delay: 0.3s"></i>
+            </div>
+
+            <h2 id="result-title" class="font-game text-3xl sm:text-5xl text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-200 to-cyan-300">
+                LUAR BIASA! MISI SELESAI!
+            </h2>
+            <p id="result-subtitle" class="text-indigo-200 text-sm sm:text-lg mt-1 font-semibold">
+                Kamu telah menyelesaikan tantangan Operasi Hitung Bilangan Cacah sampai 100.000!
+            </p>
+
+            <!-- Final Score Cards -->
+            <div class="grid grid-cols-3 gap-3 sm:gap-6 w-full max-w-xl my-6">
+                <div class="bg-indigo-950/80 border border-amber-400/40 rounded-2xl p-3 sm:p-4">
+                    <div class="text-xs text-amber-200 uppercase font-bold">Skor Akhir</div>
+                    <div id="res-final-score" class="font-game text-2xl sm:text-4xl text-amber-300 mt-1">1000</div>
+                </div>
+                <div class="bg-indigo-950/80 border border-emerald-400/40 rounded-2xl p-3 sm:p-4">
+                    <div class="text-xs text-emerald-200 uppercase font-bold">Jawaban Benar</div>
+                    <div id="res-correct-count" class="font-game text-2xl sm:text-4xl text-emerald-300 mt-1">8 / 10</div>
+                </div>
+                <div class="bg-indigo-950/80 border border-cyan-400/40 rounded-2xl p-3 sm:p-4">
+                    <div class="text-xs text-cyan-200 uppercase font-bold">Akurasi</div>
+                    <div id="res-accuracy" class="font-game text-2xl sm:text-4xl text-cyan-300 mt-1">80%</div>
+                </div>
+            </div>
+
+            <!-- Evaluation & Answer Breakdown -->
+            <div class="w-full text-left bg-slate-950/80 border border-indigo-500/30 rounded-2xl p-4 sm:p-5 mb-6 max-h-64 overflow-y-auto">
+                <h3 class="font-game text-base sm:text-lg text-cyan-300 mb-3 sticky top-0 bg-slate-950/95 py-1 flex items-center gap-2">
+                    <i class="fa-solid fa-clipboard-check"></i> Rincian Evaluasi Jawaban & Pembahasan Singkat:
+                </h3>
+                <div id="evaluation-list" class="space-y-2.5 text-xs sm:text-sm">
+                    <!-- Populated dynamically via JS -->
+                </div>
+            </div>
+
+            <!-- Action Buttons: Main Lagi & Keluar -->
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4 w-full max-w-lg">
+                <button onclick="startGameSession()" class="btn-game w-full sm:w-1/2 py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 border-2 border-emerald-300 text-white font-game text-xl flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-rotate-right"></i> MAIN LAGI
+                </button>
+                <button onclick="quitToSplash()" class="btn-game w-full sm:w-1/2 py-4 px-6 rounded-2xl bg-gradient-to-r from-rose-600 to-pink-600 border-2 border-rose-300 text-white font-game text-xl flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-right-from-bracket"></i> KELUAR
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- ========================================== -->
+    <!-- JAVASCRIPT ENGINE: AUDIO, MOTION & MATH    -->
+    <!-- ========================================== -->
+    <script>
+        /**************************************************************
+         * 1. GLOBAL GAME STATE & CONFIGURATION
+         **************************************************************/
+        const gameState = {
+            useSensorCamera: true,
+            cameraActive: false,
+            operationMode: 'CAMPURAN', // CAMPURAN, TAMBAH, KURANG, KALI, BAGI
+            difficulty: 'SEDANG',      // MUDAH, SEDANG, MAHIR
+            soundEnabled: true,
+            isPaused: false,
+            isProcessingAnswer: false,
+            score: 0,
+            lives: 3,
+            maxQuestions: 10,
+            currentQuestionIndex: 0,
+            questions: [],
+            history: [],
+            timeLeft: 30,
+            timerInterval: null,
+            targetHoldProgress: [0, 0, 0, 0], // 0 to 100% for 4 options
+            prevFrameData: null,
+            motionLoopId: null
+        };
+
+        // Format integer with Indonesian dot separator (e.g., 85.400)
+        function formatNumberID(num) {
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        }
+
+        /**************************************************************
+         * 2. SYNTHESIZED SOUND ENGINE (Tone.js)
+         **************************************************************/
+        let synth = null;
+        async function initAudio() {
+            if (!gameState.soundEnabled) return;
+            try {
+                if (Tone.context.state !== 'running') {
+                    await Tone.start();
+                }
+                if (!synth) {
+                    synth = new Tone.PolySynth(Tone.Synth).toDestination();
+                    synth.volume.value = -6;
+                }
+            } catch (e) {
+                console.warn("Audio init skipped:", e);
+            }
+        }
+
+        function playSoundEffect(type) {
+            if (!gameState.soundEnabled || !synth) return;
+            try {
+                const now = Tone.now();
+                if (type === 'click') {
+                    synth.triggerAttackRelease(["C5"], "16n", now);
+                } else if (type === 'correct') {
+                    synth.triggerAttackRelease(["C5", "E5", "G5", "C6"], "8n", now);
+                } else if (type === 'wrong') {
+                    synth.triggerAttackRelease(["F3", "B2"], "4n", now);
+                } else if (type === 'victory') {
+                    synth.triggerAttackRelease(["C5", "E5", "G5"], "8n", now);
+                    synth.triggerAttackRelease(["D5", "F5", "A5"], "8n", now + 0.18);
+                    synth.triggerAttackRelease(["E5", "G5", "C6"], "4n", now + 0.36);
+                }
+            } catch (e) {}
+        }
+
+        function toggleSound() {
+            gameState.soundEnabled = !gameState.soundEnabled;
+            const icon = document.getElementById('icon-sound');
+            icon.className = gameState.soundEnabled ? 'fa-solid fa-volume-high' : 'fa-solid fa-volume-xmark text-rose-400';
+            if (gameState.soundEnabled) {
+                initAudio().then(() => playSoundEffect('click'));
+            }
+        }
+
+        /**************************************************************
+         * 3. NAVIGATION & UI SETTINGS
+         **************************************************************/
+        function navigateTo(screenId, quickStart = false) {
+            initAudio().then(() => playSoundEffect('click'));
+            const screens = ['screen-splash', 'screen-education', 'screen-gameplay', 'screen-result'];
+            screens.forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            document.getElementById(screenId).classList.remove('hidden');
+        }
+
+        function setSensorPreference(enableCam) {
+            playSoundEffect('click');
+            gameState.useSensorCamera = enableCam;
+            const btnOn = document.getElementById('btn-sensor-on');
+            const btnOff = document.getElementById('btn-sensor-off');
+            if (enableCam) {
+                btnOn.className = "p-3.5 rounded-xl border-2 border-cyan-400 bg-cyan-500/20 text-white font-bold text-left transition flex items-center gap-3";
+                btnOff.className = "p-3.5 rounded-xl border-2 border-slate-600 bg-slate-900/60 text-slate-300 font-bold text-left transition flex items-center gap-3";
+            } else {
+                btnOff.className = "p-3.5 rounded-xl border-2 border-amber-400 bg-amber-500/20 text-white font-bold text-left transition flex items-center gap-3";
+                btnOn.className = "p-3.5 rounded-xl border-2 border-slate-600 bg-slate-900/60 text-slate-300 font-bold text-left transition flex items-center gap-3";
+            }
+        }
+
+        function setOperationMode(mode) {
+            playSoundEffect('click');
+            gameState.operationMode = mode;
+            document.querySelectorAll('.op-btn').forEach(btn => {
+                btn.className = "op-btn p-2.5 rounded-xl border-2 border-slate-700 bg-slate-900/60 text-slate-300 font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5";
+            });
+            const active = document.getElementById('op-' + mode);
+            if (active) {
+                active.className = "op-btn p-2.5 rounded-xl border-2 border-amber-400 bg-amber-500/20 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5";
+            }
+        }
+
+        function setDifficulty(diff) {
+            playSoundEffect('click');
+            gameState.difficulty = diff;
+            document.querySelectorAll('.diff-btn').forEach(btn => {
+                btn.className = "diff-btn p-3 rounded-xl border-2 border-slate-700 bg-slate-900/60 text-slate-300 font-bold text-center transition";
+            });
+            const active = document.getElementById('diff-' + diff);
+            if (active) {
+                active.className = "diff-btn p-3 rounded-xl border-2 border-emerald-400 bg-emerald-500/20 text-white font-bold text-center transition";
+            }
+        }
+
+        /**************************************************************
+         * 4. QUESTION GENERATOR (KELAS 6 FASE C: BILANGAN CACAH s.d. 100.000)
+         **************************************************************/
+        function randInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function generateSingleQuestion(index) {
+            const ops = gameState.operationMode === 'CAMPURAN'
+                ? ['TAMBAH', 'KURANG', 'KALI', 'BAGI']
+                : [gameState.operationMode];
+            const chosenOp = ops[index % ops.length];
+            const diff = gameState.difficulty;
+
+            let a, b, answer, text, badge, explanation, visualHint = "";
+
+            if (chosenOp === 'TAMBAH') {
+                badge = "Penjumlahan Bilangan Cacah";
+                if (diff === 'MUDAH') {
+                    a = randInt(12, 45) * 1000;
+                    b = randInt(11, 45) * 1000;
+                } else if (diff === 'SEDANG') {
+                    a = randInt(150, 520) * 100;
+                    b = randInt(120, 450) * 100;
+                } else {
+                    a = randInt(21450, 58900);
+                    b = randInt(15250, 40500);
+                }
+                answer = a + b;
+                if (diff === 'MAHIR' && index % 2 === 1) {
+                    visualHint = "📦 Gudang Pangan Wonogiri";
+                    text = `Stok beras ${formatNumberID(a)} kg ditambah ${formatNumberID(b)} kg = ... kg`;
+                } else {
+                    text = `${formatNumberID(a)} + ${formatNumberID(b)} = ...`;
+                }
+                explanation = `${formatNumberID(a)} + ${formatNumberID(b)} = ${formatNumberID(answer)}`;
+
+            } else if (chosenOp === 'KURANG') {
+                badge = "Pengurangan Bilangan Cacah";
+                if (diff === 'MUDAH') {
+                    a = randInt(50, 95) * 1000;
+                    b = randInt(15, 45) * 1000;
+                } else if (diff === 'SEDANG') {
+                    a = randInt(550, 980) * 100;
+                    b = randInt(180, 500) * 100;
+                } else {
+                    a = randInt(62500, 99500);
+                    b = randInt(18750, 54250);
+                }
+                answer = a - b;
+                if (diff === 'MAHIR' && index % 2 === 1) {
+                    visualHint = "💰 Tabungan Koperasi Sekolah";
+                    text = `Saldo Rp${formatNumberID(a)} diambil Rp${formatNumberID(b)} = Rp...`;
+                } else {
+                    text = `${formatNumberID(a)} - ${formatNumberID(b)} = ...`;
+                }
+                explanation = `${formatNumberID(a)} - ${formatNumberID(b)} = ${formatNumberID(answer)}`;
+
+            } else if (chosenOp === 'KALI') {
+                badge = "Perkalian Bilangan Cacah";
+                if (diff === 'MUDAH') {
+                    a = randInt(12, 30) * 100;
+                    b = randInt(12, 30);
+                } else if (diff === 'SEDANG') {
+                    a = randInt(125, 400) * 10;
+                    b = randInt(15, 24);
+                } else {
+                    a = randInt(1150, 3800);
+                    b = randInt(14, 25);
+                }
+                answer = a * b;
+                if (diff === 'MAHIR' && index % 2 === 0) {
+                    visualHint = "📚 Distribusi Buku Sekolah";
+                    text = `${formatNumberID(b)} kotak × ${formatNumberID(a)} buku = ... buku`;
+                } else {
+                    text = `${formatNumberID(a)} × ${formatNumberID(b)} = ...`;
+                }
+                explanation = `${formatNumberID(a)} × ${formatNumberID(b)} = ${formatNumberID(answer)}`;
+
+            } else {
+                // BAGI
+                badge = "Pembagian Bilangan Cacah";
+                if (diff === 'MUDAH') {
+                    answer = randInt(12, 40) * 100;
+                    b = randInt(10, 20);
+                } else if (diff === 'SEDANG') {
+                    answer = randInt(150, 380) * 10;
+                    b = randInt(12, 25);
+                } else {
+                    answer = randInt(1250, 3900);
+                    b = randInt(15, 25);
+                }
+                a = answer * b;
+                if (diff === 'MAHIR' && index % 2 === 0) {
+                    visualHint = "🌱 Bibit Pohon Penghijauan";
+                    text = `${formatNumberID(a)} bibit dibagi ke ${formatNumberID(b)} desa = ... bibit/desa`;
+                } else {
+                    text = `${formatNumberID(a)} : ${formatNumberID(b)} = ...`;
+                }
+                explanation = `${formatNumberID(a)} : ${formatNumberID(b)} = ${formatNumberID(answer)}`;
+            }
+
+            // Generate 3 plausible distractors
+            const optionsSet = new Set([answer]);
+            const offsets = [100, -100, 500, -500, 1000, -1000, 2000, -2000, 250, -250, 10000, -10000];
+            while (optionsSet.size < 4) {
+                const offset = offsets[randInt(0, offsets.length - 1)];
+                const candidate = answer + offset;
+                if (candidate > 0 && candidate <= 100000) {
+                    optionsSet.add(candidate);
+                }
+            }
+
+            // Shuffle options
+            const options = Array.from(optionsSet).sort(() => Math.random() - 0.5);
+            const correctIndex = options.indexOf(answer);
+
+            return {
+                text,
+                badge,
+                visualHint,
+                options,
+                correctIndex,
+                answer,
+                explanation
+            };
+        }
+
+        /**************************************************************
+         * 5. WEBCAM MOTION SENSOR ENGINE (OPTICAL DIFFERENCING)
+         **************************************************************/
+        async function startCameraSensor() {
+            const video = document.getElementById('webcam-video');
+            const badge = document.getElementById('hud-sensor-badge');
+
+            if (!gameState.useSensorCamera) {
+                stopCameraSensor();
+                badge.innerHTML = `<i class="fa-solid fa-hand-pointer text-amber-300"></i> Mode Sentuh Aktif`;
+                badge.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: 640, height: 480, facingMode: "user" },
+                    audio: false
+                });
+                video.srcObject = stream;
+                await video.play();
+                gameState.cameraActive = true;
+                badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> Sensor Kamera Aktif`;
+                badge.classList.remove('hidden');
+                startMotionDetectionLoop();
+            } catch (err) {
+                console.warn("Webcam tidak ditemukan atau izin ditolak, beralih otomatis ke Mode Sentuh/Pointer:", err);
+                gameState.cameraActive = false;
+                badge.innerHTML = `<i class="fa-solid fa-hand-pointer text-amber-300"></i> Mode Sentuh / Pointer`;
+                badge.classList.remove('hidden');
+                startFallbackAmbientCanvas();
+            }
+        }
+
+        function stopCameraSensor() {
+            const video = document.getElementById('webcam-video');
+            if (video && video.srcObject) {
+                video.srcObject.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+            }
+            gameState.cameraActive = false;
+            if (gameState.motionLoopId) {
+                cancelAnimationFrame(gameState.motionLoopId);
+                gameState.motionLoopId = null;
+            }
+        }
+
+        function startMotionDetectionLoop() {
+            const video = document.getElementById('webcam-video');
+            const procCanvas = document.getElementById('motion-proc-canvas');
+            const procCtx = procCanvas.getContext('2d', { willReadFrequently: true });
+            const arenaCanvas = document.getElementById('arena-webcam-canvas');
+            const arenaCtx = arenaCanvas.getContext('2d');
+
+            const W = procCanvas.width;  // 160
+            const H = procCanvas.height; // 120
+
+            // Define 4 corner hotzones in mirrored coordinates
+            // Note: because display is mirrored (scaleX(-1)), raw video X is flipped:
+            // Top-Left on screen (Option 0) corresponds to Top-Right in raw camera frame!
+            const zones = [
+                { id: 0, xMin: Math.floor(W * 0.58), xMax: W - 4, yMin: 4, yMax: Math.floor(H * 0.42) }, // Screen Top-Left
+                { id: 1, xMin: 4, xMax: Math.floor(W * 0.42), yMin: 4, yMax: Math.floor(H * 0.42) },     // Screen Top-Right
+                { id: 2, xMin: Math.floor(W * 0.58), xMax: W - 4, yMin: Math.floor(H * 0.58), yMax: H - 4 }, // Screen Bottom-Left
+                { id: 3, xMin: 4, xMax: Math.floor(W * 0.42), yMin: Math.floor(H * 0.58), yMax: H - 4 }      // Screen Bottom-Right
+            ];
+
+            function processFrame() {
+                if (!gameState.cameraActive) return;
+
+                if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                    // Sync display canvas dimensions
+                    if (arenaCanvas.width !== arenaCanvas.clientWidth || arenaCanvas.height !== arenaCanvas.clientHeight) {
+                        arenaCanvas.width = arenaCanvas.clientWidth || 640;
+                        arenaCanvas.height = arenaCanvas.clientHeight || 480;
+                    }
+
+                    // Draw live camera feed to arena background
+                    arenaCtx.drawImage(video, 0, 0, arenaCanvas.width, arenaCanvas.height);
+
+                    // Process small frame for motion detection
+                    procCtx.drawImage(video, 0, 0, W, H);
+                    const currentFrame = procCtx.getImageData(0, 0, W, H);
+                    const data = currentFrame.data;
+
+                    if (gameState.prevFrameData && !gameState.isPaused && !gameState.isProcessingAnswer) {
+                        const prev = gameState.prevFrameData;
+                        const zoneMotionCounts = [0, 0, 0, 0];
+
+                        for (let y = 0; y < H; y += 2) {
+                            for (let x = 0; x < W; x += 2) {
+                                const idx = (y * W + x) * 4;
+                                const diffR = Math.abs(data[idx] - prev[idx]);
+                                const diffG = Math.abs(data[idx + 1] - prev[idx + 1]);
+                                const diffB = Math.abs(data[idx + 2] - prev[idx + 2]);
+
+                                if (diffR + diffG + diffB > 85) {
+                                    // Draw glowing cyan motion dot on arena canvas
+                                    const scaleX = arenaCanvas.width / W;
+                                    const scaleY = arenaCanvas.height / H;
+                                    arenaCtx.fillStyle = "rgba(56, 189, 248, 0.65)";
+                                    arenaCtx.beginPath();
+                                    arenaCtx.arc(x * scaleX, y * scaleY, 4, 0, Math.PI * 2);
+                                    arenaCtx.fill();
+
+                                    // Check which corner zone this motion pixel belongs to
+                                    for (let z = 0; z < 4; z++) {
+                                        const zn = zones[z];
+                                        if (x >= zn.xMin && x <= zn.xMax && y >= zn.yMin && y <= zn.yMax) {
+                                            zoneMotionCounts[z]++;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Update target hold progress based on motion intensity
+                        updateMotionTargets(zoneMotionCounts);
+                    }
+
+                    gameState.prevFrameData = new Uint8ClampedArray(data);
+                }
+
+                gameState.motionLoopId = requestAnimationFrame(processFrame);
+            }
+
+            gameState.motionLoopId = requestAnimationFrame(processFrame);
+        }
+
+        function startFallbackAmbientCanvas() {
+            const arenaCanvas = document.getElementById('arena-webcam-canvas');
+            const ctx = arenaCanvas.getContext('2d');
+            arenaCanvas.width = arenaCanvas.clientWidth || 640;
+            arenaCanvas.height = arenaCanvas.clientHeight || 480;
+            ctx.clearRect(0, 0, arenaCanvas.width, arenaCanvas.height);
+        }
+
+        function updateMotionTargets(zoneMotionCounts) {
+            const MOTION_THRESHOLD = 18; // Minimum moving pixels in zone
+            let triggeredIndex = -1;
+
+            for (let i = 0; i < 4; i++) {
+                const bubble = document.getElementById(`target-${i}`);
+                const progBar = document.getElementById(`opt-prog-${i}`);
+
+                if (zoneMotionCounts[i] >= MOTION_THRESHOLD) {
+                    // Increment hold progress when hand waves in corner
+                    gameState.targetHoldProgress[i] = Math.min(100, gameState.targetHoldProgress[i] + 5.5);
+                    bubble.classList.add('motion-active');
+                    if (gameState.targetHoldProgress[i] >= 100 && triggeredIndex === -1) {
+                        triggeredIndex = i;
+                    }
+                } else {
+                    // Decay smoothly when no motion
+                    gameState.targetHoldProgress[i] = Math.max(0, gameState.targetHoldProgress[i] - 3);
+                    bubble.classList.remove('motion-active');
+                }
+                progBar.style.width = `${gameState.targetHoldProgress[i]}%`;
+            }
+
+            if (triggeredIndex !== -1) {
+                selectAnswer(triggeredIndex);
+            }
+        }
+
+        // Pointer hover simulation for Interactive Flat Panels / Mouse movement
+        function handlePointerHover(index) {
+            if (gameState.isPaused || gameState.isProcessingAnswer) return;
+            if (!gameState.cameraActive) {
+                gameState.targetHoldProgress[index] = Math.min(100, gameState.targetHoldProgress[index] + 3.5);
+                document.getElementById(`opt-prog-${index}`).style.width = `${gameState.targetHoldProgress[index]}%`;
+                if (gameState.targetHoldProgress[index] >= 100) {
+                    selectAnswer(index);
+                }
+            }
+        }
+
+        /**************************************************************
+         * 6. CORE GAMEPLAY SESSION & FLOW
+         **************************************************************/
+        async function startGameSession() {
+            await initAudio();
+            playSoundEffect('click');
+
+            // Reset state
+            gameState.score = 0;
+            gameState.lives = 3;
+            gameState.currentQuestionIndex = 0;
+            gameState.isPaused = false;
+            gameState.isProcessingAnswer = false;
+            gameState.history = [];
+            gameState.questions = [];
+
+            for (let i = 0; i < gameState.maxQuestions; i++) {
+                gameState.questions.push(generateSingleQuestion(i));
+            }
+
+            navigateTo('screen-gameplay');
+            document.getElementById('pause-overlay').classList.add('hidden');
+            document.getElementById('feedback-overlay').classList.add('hidden');
+
+            await startCameraSensor();
+            renderCurrentQuestion();
+        }
+
+        function renderCurrentQuestion() {
+            if (gameState.currentQuestionIndex >= gameState.maxQuestions || gameState.lives <= 0) {
+                finishGameSession();
+                return;
+            }
+
+            const q = gameState.questions[gameState.currentQuestionIndex];
+            gameState.isProcessingAnswer = false;
+            gameState.targetHoldProgress = [0, 0, 0, 0];
+
+            // Update HUD
+            document.getElementById('hud-q-index').textContent = gameState.currentQuestionIndex + 1;
+            document.getElementById('hud-q-total').textContent = gameState.maxQuestions;
+            document.getElementById('hud-score').textContent = gameState.score;
+
+            // Render Hearts
+            const livesContainer = document.getElementById('hud-lives');
+            livesContainer.innerHTML = '';
+            for (let i = 0; i < 3; i++) {
+                const heart = document.createElement('i');
+                heart.className = i < gameState.lives
+                    ? 'fa-solid fa-heart text-rose-500 transition-transform scale-100'
+                    : 'fa-regular fa-heart text-slate-600';
+                livesContainer.appendChild(heart);
+            }
+
+            // Render Question Card
+            document.getElementById('question-badge').textContent = q.badge;
+            document.getElementById('question-visual').textContent = q.visualHint;
+            document.getElementById('question-text').textContent = q.text;
+
+            // Render 4 Options
+            for (let i = 0; i < 4; i++) {
+                document.getElementById(`opt-text-${i}`).textContent = formatNumberID(q.options[i]);
+                document.getElementById(`opt-prog-${i}`).style.width = '0%';
+                document.getElementById(`target-${i}`).classList.remove('motion-active');
+            }
+
+            // Start Per-Question Timer
+            startQuestionTimer();
+        }
+
+        function startQuestionTimer() {
+            clearInterval(gameState.timerInterval);
+            gameState.timeLeft = gameState.difficulty === 'MUDAH' ? 35 : (gameState.difficulty === 'SEDANG' ? 30 : 25);
+            const timerEl = document.getElementById('hud-timer');
+            timerEl.textContent = `${gameState.timeLeft}d`;
+
+            gameState.timerInterval = setInterval(() => {
+                if (gameState.isPaused || gameState.isProcessingAnswer) return;
+                gameState.timeLeft--;
+                timerEl.textContent = `${gameState.timeLeft}d`;
+
+                if (gameState.timeLeft <= 5) {
+                    timerEl.classList.add('text-rose-400');
+                } else {
+                    timerEl.classList.remove('text-rose-400');
+                }
+
+                if (gameState.timeLeft <= 0) {
+                    clearInterval(gameState.timerInterval);
+                    handleTimeOut();
+                }
+            }, 1000);
+        }
+
+        function handleTimeOut() {
+            if (gameState.isProcessingAnswer) return;
+            gameState.isProcessingAnswer = true;
+            const q = gameState.questions[gameState.currentQuestionIndex];
+            gameState.lives--;
+            playSoundEffect('wrong');
+
+            gameState.history.push({
+                question: q.text,
+                chosen: "Waktu Habis",
+                correct: formatNumberID(q.answer),
+                isCorrect: false,
+                explanation: q.explanation
+            });
+
+            showFeedbackOverlay(false, "WAKTU HABIS!", `Jawaban yang benar adalah ${formatNumberID(q.answer)}`);
+        }
+
+        function selectAnswer(optionIndex) {
+            if (gameState.isPaused || gameState.isProcessingAnswer) return;
+            gameState.isProcessingAnswer = true;
+            clearInterval(gameState.timerInterval);
+
+            const q = gameState.questions[gameState.currentQuestionIndex];
+            const chosenValue = q.options[optionIndex];
+            const isCorrect = optionIndex === q.correctIndex;
+
+            if (isCorrect) {
+                const timeBonus = Math.max(10, gameState.timeLeft * 2);
+                gameState.score += (100 + timeBonus);
+                playSoundEffect('correct');
+                spawnConfettiBurst();
+            } else {
+                gameState.lives--;
+                playSoundEffect('wrong');
+            }
+
+            gameState.history.push({
+                question: q.text,
+                chosen: formatNumberID(chosenValue),
+                correct: formatNumberID(q.answer),
+                isCorrect,
+                explanation: q.explanation
+            });
+
+            showFeedbackOverlay(
+                isCorrect,
+                isCorrect ? "HEBAT! JAWABAN BENAR!" : "KURANG TEPAT!",
+                `Pembahasan: ${q.explanation}`
+            );
+        }
+
+        function showFeedbackOverlay(isCorrect, title, desc) {
+            const overlay = document.getElementById('feedback-overlay');
+            const icon = document.getElementById('feedback-icon');
+            const titleEl = document.getElementById('feedback-title');
+            const descEl = document.getElementById('feedback-desc');
+
+            overlay.classList.remove('hidden');
+            if (isCorrect) {
+                icon.className = "w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-emerald-500 text-white flex items-center justify-center text-4xl sm:text-5xl mb-3 shadow-2xl";
+                icon.innerHTML = `<i class="fa-solid fa-check"></i>`;
+                titleEl.className = "font-game text-3xl sm:text-5xl text-emerald-400 mb-2";
+            } else {
+                icon.className = "w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-rose-600 text-white flex items-center justify-center text-4xl sm:text-5xl mb-3 shadow-2xl";
+                icon.innerHTML = `<i class="fa-solid fa-xmark"></i>`;
+                titleEl.className = "font-game text-3xl sm:text-5xl text-rose-400 mb-2";
+            }
+
+            titleEl.textContent = title;
+            descEl.textContent = desc;
+
+            setTimeout(() => {
+                overlay.classList.add('hidden');
+                gameState.currentQuestionIndex++;
+                renderCurrentQuestion();
+            }, 1900);
+        }
+
+        function togglePause() {
+            playSoundEffect('click');
+            gameState.isPaused = !gameState.isPaused;
+            const pauseOverlay = document.getElementById('pause-overlay');
+            if (gameState.isPaused) {
+                pauseOverlay.classList.remove('hidden');
+            } else {
+                pauseOverlay.classList.add('hidden');
+            }
+        }
+
+        function quitToSplash() {
+            clearInterval(gameState.timerInterval);
+            stopCameraSensor();
+            navigateTo('screen-splash');
+        }
+
+        /**************************************************************
+         * 7. RESULT & EVALUATION SCREEN
+         **************************************************************/
+        function finishGameSession() {
+            clearInterval(gameState.timerInterval);
+            stopCameraSensor();
+            playSoundEffect('victory');
+            navigateTo('screen-result');
+
+            const totalAnswered = gameState.history.length;
+            const correctCount = gameState.history.filter(h => h.isCorrect).length;
+            const accuracy = totalAnswered > 0 ? Math.round((correctCount / gameState.maxQuestions) * 100) : 0;
+
+            document.getElementById('res-final-score').textContent = formatNumberID(gameState.score);
+            document.getElementById('res-correct-count').textContent = `${correctCount} / ${gameState.maxQuestions}`;
+            document.getElementById('res-accuracy').textContent = `${accuracy}%`;
+
+            // Stars & Title
+            const starsContainer = document.getElementById('result-stars');
+            const titleEl = document.getElementById('result-title');
+            let starsCount = accuracy >= 80 ? 3 : (accuracy >= 50 ? 2 : 1);
+
+            if (gameState.lives <= 0 && correctCount < 5) {
+                titleEl.textContent = "TETAP SEMANGAT! AYO COBA LAGI!";
+            } else if (accuracy >= 80) {
+                titleEl.textContent = "LUAR BIASA! KSATRIA ANGKA SEJATI!";
+            } else {
+                titleEl.textContent = "BAGUS SEKALI! MISI SELESAI!";
+            }
+
+            starsContainer.innerHTML = '';
+            for (let s = 0; s < 3; s++) {
+                const star = document.createElement('i');
+                star.className = s < starsCount
+                    ? 'fa-solid fa-star text-amber-400 drop-shadow-lg animate-bounce'
+                    : 'fa-regular fa-star text-slate-600';
+                star.style.animationDelay = `${s * 0.15}s`;
+                starsContainer.appendChild(star);
+            }
+
+            // Populate Evaluation Breakdown
+            const evalList = document.getElementById('evaluation-list');
+            evalList.innerHTML = '';
+            gameState.history.forEach((item, idx) => {
+                const row = document.createElement('div');
+                row.className = `p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${
+                    item.isCorrect
+                        ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-100'
+                        : 'bg-rose-950/40 border-rose-500/40 text-rose-100'
+                }`;
+                row.innerHTML = `
+                    <div class="flex items-start gap-2.5">
+                        <span class="w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
+                            item.isCorrect ? 'bg-emerald-500 text-slate-950' : 'bg-rose-500 text-white'
+                        }">${idx + 1}</span>
+                        <div>
+                            <div class="font-bold text-white">${item.question}</div>
+                            <div class="text-xs opacity-90 mt-0.5">Pembahasan: <strong>${item.explanation}</strong></div>
+                        </div>
+                    </div>
+                    <div class="text-right shrink-0 text-xs sm:text-sm font-bold">
+                        ${item.isCorrect
+                            ? `<span class="text-emerald-400"><i class="fa-solid fa-check-circle mr-1"></i>Jawabanmu: ${item.chosen}</span>`
+                            : `<span class="text-rose-400"><i class="fa-solid fa-times-circle mr-1"></i>Jawabanmu: ${item.chosen} (Benar: ${item.correct})</span>`
+                        }
+                    </div>
+                `;
+                evalList.appendChild(row);
+            });
+        }
+
+        // Visual Confetti Particle Effect
+        function spawnConfettiBurst() {
+            const colors = ['#facc15', '#38bdf8', '#34d399', '#f472b6', '#a78bfa'];
+            for (let i = 0; i < 28; i++) {
+                const p = document.createElement('div');
+                p.className = 'particle';
+                const size = randInt(8, 14);
+                p.style.width = `${size}px`;
+                p.style.height = `${size}px`;
+                p.style.backgroundColor = colors[randInt(0, colors.length - 1)];
+                p.style.left = '50%';
+                p.style.top = '50%';
+                document.body.appendChild(p);
+
+                const angle = Math.random() * Math.PI * 2;
+                const velocity = randInt(90, 260);
+                const tx = Math.cos(angle) * velocity;
+                const ty = Math.sin(angle) * velocity;
+
+                p.animate([
+                    { transform: 'translate(-50%, -50%) scale(1)', opacity: 1 },
+                    { transform: `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(0)`, opacity: 0 }
+                ], {
+                    duration: 900,
+                    easing: 'cubic-bezier(0, .9, .57, 1)'
+                }).onfinish = () => p.remove();
+            }
+        }
+    </script>
+</body>
+</html>
